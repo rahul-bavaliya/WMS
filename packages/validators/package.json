@@ -1,0 +1,20 @@
+{
+  "name": "@wms/validators",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}

@@ -1,0 +1,744 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  logo      String?
+  industry  String
+  address   String?
+  city      String?
+  country   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches     Branch[]
+  users        User[]
+  customers    Customer[]
+  workOrders   WorkOrder[]
+  parts        Part[]
+  invoices     Invoice[]
+  jobTemplates JobTemplate[]
+  contracts    Contract[]
+  telematicsMachines TelematicsMachine[]
+
+  @@index([industry])
+  @@index([isActive])
+}
+
+model Branch {
+  id                 String   @id @default(cuid())
+  companyId          String
+  name               String
+  code               String
+  address            String?
+  city               String?
+  state              String?
+  country            String?
+  phone              String?
+  email              String?
+  latitude           Float?
+  longitude          Float?
+  laborRateRegular   Float    @default(0)
+  laborRateOvertime Float    @default(0)
+  laborRateEmergency Float   @default(0)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  users              User[]
+  customers          Customer[]
+  workOrders         WorkOrder[]
+  laborRates         LaborRate[]
+  branchExpenses     BranchExpense[]
+  payrollConfigs     PayrollConfig[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  companyId    String?
+  branchId     String?
+  email        String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         String   @default("TECHNICIAN")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  branch       Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  workOrdersAssigned WorkOrder[] @relation("AssignedWorkOrders")
+  workOrderNotes     WorkOrderNote[]
+  workOrderPhotos    WorkOrderPhoto[]
+  timeLogs           TimeLog[]
+  travelLogs         TravelLog[]
+  payrollProfiles    EmployeePayProfile[]
+
+  @@unique([email])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([role])
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  companyId    String
+  branchId     String?
+  name         String
+  email        String?
+  phone        String
+  companyName  String?
+  address      String?
+  city         String?
+  state        String?
+  country      String?
+  latitude     Float?
+  longitude    Float?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch       Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  workOrders   WorkOrder[]
+  assets       CustomerAsset[]
+  invoices     Invoice[]
+
+  @@index([companyId])
+  @@index([branchId])
+}
+
+model CustomerAsset {
+  id           String   @id @default(cuid())
+  customerId   String
+  name         String
+  make         String?
+  model         String?
+  year         Int?
+  serialNumber String?
+  VIN          String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  inspections  VehicleInspection[]
+
+  @@index([customerId])
+}
+
+model WorkOrder {
+  id             String    @id @default(cuid())
+  companyId      String
+  customerId     String
+  branchId       String?
+  assignedTo     String?
+  title          String
+  description    String?
+  status         String    @default("OPEN")
+  priority       String    @default("MEDIUM")
+  jobType        String?
+  tradeType      String?
+  scheduledDate  DateTime?
+  estimatedHours Float?
+  completedAt    DateTime?
+  invoicedAt     DateTime?
+  slaDueDate     DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  branch         Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  assignedUser   User?     @relation("AssignedWorkOrders", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  notes          WorkOrderNote[]
+  photos         WorkOrderPhoto[]
+  partsUsed      WorkOrderPart[]
+  timeLogs       TimeLog[]
+  travelLogs     TravelLog[]
+  repairLogs     RepairLog[]
+  costEstimates   JobCostEstimate[]
+  invoice        Invoice?
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([branchId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledDate])
+}
+
+model WorkOrderNote {
+  id          String   @id @default(cuid())
+  workOrderId String
+  authorId    String
+  content     String
+  isInternal  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+}
+
+model WorkOrderPhoto {
+  id          String   @id @default(cuid())
+  workOrderId String
+  uploadedById String
+  url         String
+  type        String   @default("OTHER")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  uploadedBy  User      @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+}
+
+model Part {
+  id                String   @id @default(cuid())
+  companyId         String
+  partNumber        String
+  name              String
+  description       String?
+  category          String?
+  costPrice         Float    @default(0)
+  sellingPrice      Float    @default(0)
+  quantityInStock    Int      @default(0)
+  minStockQuantity  Int      @default(0)
+  supplierId        String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier          PartSupplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  workOrderParts    WorkOrderPart[]
+  templateParts     TemplatePart[]
+  partUsageLogs     PartUsageLog[]
+  partReorders     PartReorder[]
+
+  @@unique([companyId, partNumber])
+  @@index([companyId])
+}
+
+model PartSupplier {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parts     Part[]
+
+  @@index([isActive])
+}
+
+model WorkOrderPart {
+  id          String   @id @default(cuid())
+  workOrderId String
+  partId      String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  part        Part      @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+}
+
+model TimeLog {
+  id           String    @id @default(cuid())
+  workOrderId  String
+  userId       String
+  startTime    DateTime
+  endTime      DateTime?
+  duration     Int?      // minutes
+  type         String    @default("WORK") // WORK, BREAK, TRAVEL
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([userId])
+}
+
+model TravelLog {
+  id           String   @id @default(cuid())
+  workOrderId  String
+  userId       String
+  startOdometer Int?
+  endOdometer  Int?
+  distance     Float?   // km
+  route        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([userId])
+}
+
+model LaborRate {
+  id           String   @id @default(cuid())
+  branchId     String
+  tradeType    String
+  regularRate  Float
+  overtimeRate Float
+  emergencyRate Float
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, tradeType])
+  @@index([branchId])
+}
+
+model JobTemplate {
+  id              String   @id @default(cuid())
+  companyId       String
+  name            String
+  description     String?
+  industry        String?
+  tradeType       String?
+  estimatedHours  Float?
+  checklistSteps  Json?    // Array of { step: string, description: string }
+  suggestedParts  Json?    // Array of { partId: string, quantity: number }
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  templateParts   TemplatePart[]
+  costEstimates   JobCostEstimate[]
+
+  @@index([companyId])
+}
+
+model TemplatePart {
+  id           String       @id @default(cuid())
+  templateId   String
+  partId       String
+  quantity     Int          @default(1)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  template     JobTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  part         Part         @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+model JobCostEstimate {
+  id           String   @id @default(cuid())
+  workOrderId  String
+  templateId   String?
+  laborCost    Float    @default(0)
+  partsCost    Float    @default(0)
+  otherCosts   Float    @default(0)
+  tax          Float    @default(0)
+  totalCost    Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workOrder    WorkOrder   @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  template    JobTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+}
+
+model RepairLog {
+  id           String   @id @default(cuid())
+  workOrderId  String
+  faultType    String?
+  actionTaken  String?
+  repairTime   Int?     // minutes
+  isFirstFix   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  companyId      String
+  workOrderId    String   @unique
+  customerId     String
+  invoiceNumber  String
+  subtotal       Float
+  tax            Float
+  total          Float
+  status         String   @default("DRAFT")
+  dueDate        DateTime
+  paidAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  customer       Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model VehicleInspection {
+  id           String   @id @default(cuid())
+  assetId      String
+  workOrderId  String?
+  inspectorId  String
+  status       String   @default("IN_PROGRESS")
+  findings     Json?    // Array of { item: string, status: 'OK' | 'ISSUE' | 'NA', notes: string }
+  signatureUrl String?
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  asset        CustomerAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+}
+
+model TelematicsMachine {
+  id               String   @id @default(cuid())
+  companyId        String
+  name             String
+  brand            String   // JOHN_DEERE, CAT, JCB
+  model            String?
+  serialNumber     String?
+  year             Int?
+  currentLocation  Json?    // { lat: number, lng: number }
+  engineStatus     String?  // ON, OFF, IDLE
+  fuelLevel        Float?
+  engineHours      Float?
+  lastSyncAt       DateTime?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  telemetryLogs    TelemetryLog[]
+  alerts           TelematicsAlert[]
+  geofences        GeofenceMachine[]
+
+  @@index([companyId])
+  @@index([brand])
+}
+
+model TelemetryLog {
+  id              String   @id @default(cuid())
+  machineId       String
+  timestamp       DateTime
+  latitude        Float
+  longitude       Float
+  altitude        Float?
+  speed           Float?
+  engineStatus    String?
+  fuelLevel       Float?
+  engineHours     Float?
+  coolantTemp     Float?
+  oilPressure     Float?
+  batteryVoltage  Float?
+  dtcCodes        Json?    // Array of diagnostic trouble codes
+  createdAt       DateTime @default(now())
+
+  machine         TelematicsMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([machineId])
+  @@index([timestamp])
+}
+
+model TelematicsAlert {
+  id              String   @id @default(cuid())
+  machineId       String
+  severity        String   // CRITICAL, HIGH, MEDIUM, LOW
+  code            String?
+  message         String
+  aiDiagnosis     Json?    // { diagnosis: string, cause: string, recommendedFix: string, partsNeeded: string[] }
+  acknowledgedAt  DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  machine         TelematicsMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([machineId])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model Geofence {
+  id           String   @id @default(cuid())
+  companyId    String
+  name         String
+  type         String   // CIRCLE, POLYGON
+  coordinates  Json     // { center: { lat, lng }, radius: number } or { polygon: [[lat,lng], ...] }
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  machines     GeofenceMachine[]
+
+  @@index([companyId])
+}
+
+model GeofenceMachine {
+  id           String   @id @default(cuid())
+  geofenceId   String
+  machineId    String
+  createdAt    DateTime @default(now())
+
+  geofence     Geofence           @relation(fields: [geofenceId], references: [id], onDelete: Cascade)
+  machine      TelematicsMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@unique([geofenceId, machineId])
+}
+
+model BranchExpense {
+  id           String   @id @default(cuid())
+  branchId     String
+  category     String
+  description  String
+  amount       Float
+  date         DateTime
+  receiptUrl   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@index([date])
+}
+
+model PayrollConfig {
+  id               String   @id @default(cuid())
+  branchId         String
+  payPeriod        String   @default("MONTHLY") // WEEKLY, BIWEEKLY, MONTHLY
+  overtimeRule     String   @default("TIME_AND_HALF") // STANDARD, TIME_AND_HALF, DOUBLE
+  deductTax        Boolean  @default(true)
+  deductInsurance  Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  branch           Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+}
+
+model EmployeePayProfile {
+  id             String   @id @default(cuid())
+  userId         String
+  payType        String   @default("HOURLY") // SALARY, HOURLY, COMMISSION
+  hourlyRate     Float?
+  salaryAmount   Float?
+  commissionRate Float?
+  bankName       String?
+  accountNumber  String?
+  sortCode       String?
+  taxCode        String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payslips       Payslip[]
+  advances       SalaryAdvance[]
+  deductions     PayrollDeduction[]
+
+  @@index([userId])
+}
+
+model Payslip {
+  id               String   @id @default(cuid())
+  employeeProfileId String
+  periodStart      DateTime
+  periodEnd        DateTime
+  regularHours     Float    @default(0)
+  overtimeHours    Float    @default(0)
+  regularPay       Float
+  overtimePay      Float
+  commissionPay     Float    @default(0)
+  grossPay         Float
+  taxDeduction     Float    @default(0)
+  insuranceDeduction Float  @default(0)
+  otherDeductions  Float    @default(0)
+  netPay           Float
+  status           String   @default("DRAFT") // DRAFT, PENDING, PAID
+  paidAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  employeeProfile  EmployeePayProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  @@index([employeeProfileId])
+  @@index([periodStart])
+}
+
+model SalaryAdvance {
+  id               String   @id @default(cuid())
+  employeeProfileId String
+  amount           Float
+  reason           String?
+  status           String   @default("PENDING") // PENDING, APPROVED, REJECTED, DEDUCTED
+  requestedAt      DateTime @default(now())
+  processedAt      DateTime?
+  deductedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  employeeProfile  EmployeePayProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  @@index([employeeProfileId])
+}
+
+model PayrollDeduction {
+  id               String   @id @default(cuid())
+  employeeProfileId String
+  type             String   // TAX, INSURANCE, ADVANCE, OTHER
+  description      String
+  amount           Float
+  isRecurring      Boolean  @default(false)
+  endDate          DateTime?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  employeeProfile  EmployeePayProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  @@index([employeeProfileId])
+}
+
+model Contract {
+  id               String   @id @default(cuid())
+  companyId        String
+  customerId       String
+  templateId       String?
+  title            String
+  content          String
+  startDate        DateTime
+  endDate          DateTime
+  value            Float?
+  status           String   @default("DRAFT") // DRAFT, SENT, SIGNED, ACTIVE, EXPIRED, TERMINATED
+  customerSignature String?
+  companySignature  String?
+  signedAt          DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model PartUsageLog {
+  id           String   @id @default(cuid())
+  partId       String
+  workOrderId  String?
+  quantity     Int
+  action       String   // ADDED, REMOVED, ADJUSTED
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  part         Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([workOrderId])
+}
+
+model PartReorder {
+  id           String   @id @default(cuid())
+  partId       String
+  quantity     Int
+  status       String   @default("PENDING") // PENDING, ORDERED, RECEIVED
+  orderedAt    DateTime?
+  receivedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  part         Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+
+  @@index([partId])
+  @@index([status])
+}
+
+model SyncQueue {
+  id           String   @id @default(cuid())
+  deviceId     String
+  tableName    String
+  recordId     String
+  operation    String   // CREATE, UPDATE, DELETE
+  payload      Json
+  status       String   @default("PENDING") // PENDING, SYNCED, FAILED
+  attempts     Int      @default(0)
+  lastError    String?
+  syncedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([deviceId, status])
+  @@index([tableName, recordId])
+}
+
+model AIInteraction {
+  id           String   @id @default(cuid())
+  companyId    String
+  feature      String   // WORK_ORDER_CLASSIFY, AUTO_ASSIGN, CHATBOT, etc.
+  prompt       String
+  response     String
+  tokensUsed   Int?
+  latencyMs    Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([feature])
+  @@index([createdAt])
+}

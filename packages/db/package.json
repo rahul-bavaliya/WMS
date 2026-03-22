@@ -1,0 +1,28 @@
+{
+  "name": "@wms/db",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./schema": "./prisma/schema.prisma"
+  },
+  "scripts": {
+    "dev": "prisma studio --port 5555",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "push": "prisma db push",
+    "studio": "prisma studio",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}

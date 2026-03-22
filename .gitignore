@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # Dependencies
 node_modules
 .pnp
@@ -11,6 +9,7 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.*
 
 # Testing
 coverage
@@ -22,11 +21,18 @@ coverage
 .vercel
 
 # Build Outputs
-.next/
-out/
+.next
+out
 build
 dist
 
+# Expo
+apps/mobile/.expo
+apps/mobile/dist
+
+# Prisma
+packages/db/prisma/*.db
+packages/db/prisma/*.db-journal
 
 # Debug
 npm-debug.log*
@@ -36,3 +42,9 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
