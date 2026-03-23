@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WMS Platform",
-  description: "Multi-Industry Work Order Management System",
+  title: "ServiQ - AI-Powered Field Service Management",
+  description: "Manage work orders, technicians, and customers with AI-powered field service software for HVAC, Auto Garage, Manufacturing and more.",
 };
 
 export default function RootLayout({

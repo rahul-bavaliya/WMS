@@ -1,4 +1,4 @@
-# WMS Platform — Complete Project Context for Claude Code
+# ServiQ Platform — Complete Project Context for Claude Code
 
 ## Project Overview
 Multi-Industry Work Order Management System (WMS) with AI, Telematics,
@@ -244,7 +244,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=WMS Platform
+NEXT_PUBLIC_APP_NAME=ServiQ Platform
 
 # Clerk Auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
